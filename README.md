@@ -13,7 +13,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/anynines/go-proxy-setup-ntlm/proxy-setup/ntlm"
+	"github.com/anynines/go-proxy-setup-ntlm/proxysetup/ntlm"
 )
 
 func main() {
