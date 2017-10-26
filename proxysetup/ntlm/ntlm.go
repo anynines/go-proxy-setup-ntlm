@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -12,7 +13,7 @@ import (
 	ntlmauth "github.com/anynines/go-ntlm-auth/ntlm"
 )
 
-func ProxySetup(ctx http.ProxySetupContext) error {
+func ProxySetup(conn net.Conn, targetAddr string) error {
 	auth, authOk := ntlmauth.GetDefaultCredentialsAuth()
 	if !authOk {
 		return errors.New("Failed to get NTLM default credentials auth")
@@ -26,23 +27,20 @@ func ProxySetup(ctx http.ProxySetupContext) error {
 
 	negotiateMsg := base64.StdEncoding.EncodeToString(negotiateMessageBytes)
 
-	hdr := ctx.ProxyConnectHeader
-	if hdr == nil {
-		hdr = make(http.Header)
-	}
+	hdr := make(http.Header)
 	hdr.Set("Proxy-Connection", "Keep-Alive")
 	hdr.Set("Proxy-Authorization", "NTLM "+negotiateMsg)
 	connectReq := &http.Request{
 		Method: "CONNECT",
-		URL:    &url.URL{Opaque: ctx.TargetAddr},
-		Host:   ctx.TargetAddr,
+		URL:    &url.URL{Opaque: targetAddr},
+		Host:   targetAddr,
 		Header: hdr,
 	}
 
-	connectReq.Write(ctx.Conn)
+	connectReq.Write(conn)
 
 	// Read response.
-	br := bufio.NewReader(ctx.Conn)
+	br := bufio.NewReader(conn)
 	resp, err := http.ReadResponse(br, connectReq)
 	if err != nil {
 		return err
@@ -73,11 +71,11 @@ func ProxySetup(ctx http.ProxySetupContext) error {
 	hdr.Set("Proxy-Authorization", "NTLM "+authMsg)
 	connectReq = &http.Request{
 		Method: "CONNECT",
-		URL:    &url.URL{Opaque: ctx.TargetAddr},
-		Host:   ctx.TargetAddr,
+		URL:    &url.URL{Opaque: targetAddr},
+		Host:   targetAddr,
 		Header: hdr,
 	}
-	connectReq.Write(ctx.Conn)
+	connectReq.Write(conn)
 
 	// Read response.
 	resp, err = http.ReadResponse(br, connectReq)
