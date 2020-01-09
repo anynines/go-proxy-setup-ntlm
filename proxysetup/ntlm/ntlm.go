@@ -47,6 +47,11 @@ func ProxySetup(conn net.Conn, targetAddr string) error {
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
+	
+	if resp.StatusCode == 200 {
+		return nil
+	}
 	_, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
